@@ -10,6 +10,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.support.QuerydslRepositorySupport;
 import org.springframework.data.repository.support.PageableExecutionUtils;
+import org.springframework.util.StringUtils;
 import study.querydsl.dto.MemberSearchCondition;
 import study.querydsl.dto.MemberTeamDto;
 import study.querydsl.dto.QMemberTeamDto;
@@ -17,6 +18,9 @@ import study.querydsl.entity.Member;
 
 import javax.persistence.EntityManager;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.function.Function;
 
 import static org.springframework.util.StringUtils.hasText;
 import static study.querydsl.entity.QMember.member;
@@ -161,10 +165,18 @@ public class MemberRepositoryImpl extends QuerydslRepositorySupport implements M
                     usernameEq(condition.getUsername()),
                     teamNameEq(condition.getTeamName()),
                     ageGoe(condition.getAgeGoe()),
-                    ageLoe(condition.getAgeLoe())
+                    ageLoe(condition.getAgeLoe()),
+                    condition(condition.getUsername(), member.username::eq)
             )
             .fetchCount();
     return total;
+  }
+
+  private <T> BooleanExpression condition(T value, Function<T, BooleanExpression> function) {
+    if (value instanceof String && !StringUtils.hasText(Objects.toString(value))) {
+      return null;
+    }
+    return Optional.ofNullable(value).map(function).orElse(null);
   }
 
   private List<MemberTeamDto> getMemberTeamDtos(MemberSearchCondition condition, Pageable pageable) {
